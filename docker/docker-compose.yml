@@ -1,0 +1,255 @@
+
+
+# ══════════════════════════════════════════════
+#  RÉSEAUX
+# ══════════════════════════════════════════════
+networks:
+  frontend_net:        # Django <-> Nginx
+  backend_net:         # Django <-> PostgreSQL / Redis
+  security_net:        # Django <-> Wazuh / TheHive
+  project_net:         # Django <-> OpenProject
+
+# ══════════════════════════════════════════════
+#  VOLUMES PERSISTANTS
+# ══════════════════════════════════════════════
+volumes:
+  postgres_data:
+  redis_data:
+  static_files:
+  media_files:
+  wazuh_data:
+  wazuh_logs:
+  wazuh_etc:
+  wazuh_var:
+  thehive_data:
+  thehive_index:
+  openproject_assets:
+  openproject_pgdata:
+
+# ══════════════════════════════════════════════
+#  SERVICES
+# ══════════════════════════════════════════════
+services:
+
+  # ──────────────────────────────────────────
+  # 1. POSTGRESQL (base principale Django)
+  # ──────────────────────────────────────────
+  db:
+    image: postgres:15-alpine
+    container_name: sgd_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-sgd_db}
+      POSTGRES_USER: ${DB_USER:-sgd_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - backend_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-sgd_user}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ──────────────────────────────────────────
+  # 2. REDIS (cache + sessions)
+  # ──────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: sgd_redis
+    restart: unless-stopped
+    command: redis-server --requirepass ${REDIS_PASSWORD:-changeme}
+    volumes:
+      - redis_data:/data
+    networks:
+      - backend_net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ──────────────────────────────────────────
+  # 3. DJANGO (application principale)
+  # ──────────────────────────────────────────
+  django:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: sgd_django
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DB_HOST: db
+      DB_PORT: "5432"
+      REDIS_HOST: redis
+    volumes:
+      - static_files:/app/staticfiles
+      - media_files:/app/mediafiles
+      - ../logs:/app/logs
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - backend_net
+      - frontend_net
+      - security_net
+    ports:
+      - "8000:8000"
+
+  # ──────────────────────────────────────────
+  # 4. NGINX (reverse proxy)
+  # ──────────────────────────────────────────
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: sgd_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - static_files:/app/staticfiles:ro
+      - media_files:/app/mediafiles:ro
+
+    depends_on:
+      - django
+    networks:
+      - frontend_net
+
+  # ──────────────────────────────────────────
+  # 5. WAZUH (SIEM)
+  # ──────────────────────────────────────────
+  wazuh-manager:
+    image: wazuh/wazuh-manager:4.7.3
+    container_name: sgd_wazuh_manager
+    restart: unless-stopped
+    ports:
+      - "1514:1514"       # Agent communication
+      - "1515:1515"       # Agent enrollment
+      - "514:514/udp"     # Syslog
+      - "55000:55000"     # REST API
+    environment:
+      INDEXER_URL: https://wazuh-indexer:9200
+      INDEXER_USERNAME: admin
+      INDEXER_PASSWORD: ${WAZUH_INDEXER_PASSWORD:-changeme}
+      FILEBEAT_SSL_VERIFICATION_MODE: full
+    volumes:
+      - wazuh_etc:/var/ossec/etc
+      - wazuh_logs:/var/ossec/logs
+      - wazuh_data:/var/ossec/data
+      - wazuh_var:/var/ossec/var
+      - ./wazuh/config/ossec.conf:/var/ossec/etc/ossec.conf:ro
+    networks:
+      - security_net
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+
+  wazuh-indexer:
+    image: wazuh/wazuh-indexer:4.7.3
+    container_name: sgd_wazuh_indexer
+    restart: unless-stopped
+    environment:
+      OPENSEARCH_JAVA_OPTS: "-Xms512m -Xmx512m"
+    volumes:
+      - ./wazuh/config/wazuh-indexer.yml:/usr/share/wazuh-indexer/config/opensearch.yml:ro
+    networks:
+      - security_net
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+
+  wazuh-dashboard:
+    image: wazuh/wazuh-dashboard:4.7.3
+    container_name: sgd_wazuh_dashboard
+    restart: unless-stopped
+    ports:
+      - "5601:5601"
+    environment:
+      OPENSEARCH_HOSTS: '["https://wazuh-indexer:9200"]'
+      WAZUH_API_URL: https://wazuh-manager
+    depends_on:
+      - wazuh-indexer
+      - wazuh-manager
+    networks:
+      - security_net
+
+  # ──────────────────────────────────────────
+  # 6. THEHIVE (gestion des incidents)
+  # ──────────────────────────────────────────
+  thehive:
+    image: strangebee/thehive:5.3
+    container_name: sgd_thehive
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+    environment:
+      JVM_OPTS: "-Xms512m -Xmx1024m"
+    volumes:
+      - thehive_data:/opt/thp/thehive/data
+      - thehive_index:/opt/thp/thehive/index
+      - ./thehive/config/application.conf:/etc/thehive/application.conf:ro
+    depends_on:
+      - cassandra
+    networks:
+      - security_net
+
+  cassandra:
+    image: cassandra:4.1
+    container_name: sgd_cassandra
+    restart: unless-stopped
+    environment:
+      CASSANDRA_CLUSTER_NAME: thehive
+      HEAP_NEWSIZE: 128M
+      MAX_HEAP_SIZE: 512M
+    networks:
+      - security_net
+    healthcheck:
+      test: ["CMD-SHELL", "nodetool status | grep UN"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+
+  # ──────────────────────────────────────────
+  # 7. OPENPROJECT (gestion des tâches)
+  # ──────────────────────────────────────────
+  openproject:
+    image: openproject/openproject:14
+    container_name: sgd_openproject
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    environment:
+      OPENPROJECT_HOST__NAME: localhost:8080
+      OPENPROJECT_SECRET_KEY_BASE: ${OPENPROJECT_SECRET:-changeme_long_secret}
+      DATABASE_URL: postgresql://${OP_DB_USER:-op_user}:${OP_DB_PASS:-changeme}@op_db/openproject
+      RAILS_CACHE_STORE: memcache
+    volumes:
+      - openproject_assets:/var/openproject/assets
+    depends_on:
+      - op_db
+    networks:
+      - project_net
+
+  op_db:
+    image: postgres:15-alpine
+    container_name: sgd_op_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: openproject
+      POSTGRES_USER: ${OP_DB_USER:-op_user}
+      POSTGRES_PASSWORD: ${OP_DB_PASS:-changeme}
+    volumes:
+      - openproject_pgdata:/var/lib/postgresql/data
+    networks:
+      - project_net

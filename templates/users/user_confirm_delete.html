@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% block title %}Supprimer l'utilisateur{% endblock %}
+{% block content %}
+<div style="max-width:500px;margin:60px auto">
+  <div class="card" style="text-align:center;padding:40px">
+    <i class="fas fa-user-xmark" style="font-size:48px;color:var(--red);margin-bottom:16px"></i>
+    <h2 style="margin-bottom:8px">Supprimer cet utilisateur ?</h2>
+    <p style="color:var(--text-muted);margin-bottom:24px">
+      L'utilisateur <strong>{{ target.username }}</strong> ({{ target.get_full_name }}) sera définitivement supprimé.
+    </p>
+    <form method="post" style="display:flex;gap:12px;justify-content:center">
+      {% csrf_token %}
+      <a href="{% url 'users:list' %}" class="btn btn-secondary">Annuler</a>
+      <button type="submit" class="btn btn-danger"><i class="fas fa-trash"></i> Supprimer</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

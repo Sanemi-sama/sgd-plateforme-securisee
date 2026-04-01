@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% block title %}{{ action }} un dossier{% endblock %}
+{% block breadcrumb %}
+  <i class="fas fa-chevron-right" style="font-size:10px"></i>
+  <a href="{% url 'dossiers:list' %}">Dossiers</a>
+  <i class="fas fa-chevron-right" style="font-size:10px"></i>
+  <span class="bc-current">{{ action }}</span>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title"><i class="fas fa-folder-plus"></i> {{ action }} un dossier</h1>
+</div>
+
+<div style="max-width:800px">
+  <div class="card">
+    <form method="post">
+      {% csrf_token %}
+      <div class="form-row">
+        <div class="form-group">
+          <label>Titre *</label>
+          {{ form.titre }}
+          {% for e in form.titre.errors %}<ul class="errorlist"><li>{{ e }}</li></ul>{% endfor %}
+        </div>
+        <div class="form-group">
+          <label>Client *</label>
+          {{ form.client }}
+          {% for e in form.client.errors %}<ul class="errorlist"><li>{{ e }}</li></ul>{% endfor %}
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        {{ form.description }}
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Catégorie</label>{{ form.categorie }}
+        </div>
+        {% if form.statut %}
+        <div class="form-group">
+          <label>Statut</label>{{ form.statut }}
+        </div>
+        {% endif %}
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Priorité</label>{{ form.priorite }}
+        </div>
+        {% if form.responsable %}
+        <div class="form-group">
+          <label>Responsable</label>{{ form.responsable }}
+        </div>
+        {% endif %}
+      </div>
+      <div class="form-group">
+        <label>Date d'échéance</label>{{ form.date_echeance }}
+      </div>
+      <div class="form-actions">
+        <a href="{% url 'dossiers:list' %}" class="btn btn-secondary">Annuler</a>
+        <button type="submit" class="btn btn-primary"><i class="fas fa-floppy-disk"></i> Enregistrer</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

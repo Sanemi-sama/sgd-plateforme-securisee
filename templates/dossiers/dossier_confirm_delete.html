@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block title %}Supprimer le dossier{% endblock %}
+{% block content %}
+<div style="max-width:500px;margin:60px auto">
+  <div class="card" style="text-align:center;padding:40px">
+    <i class="fas fa-triangle-exclamation" style="font-size:48px;color:var(--red);margin-bottom:16px"></i>
+    <h2 style="margin-bottom:8px">Supprimer ce dossier ?</h2>
+    <p style="color:var(--text-muted);margin-bottom:24px">
+      Le dossier <strong class="ref-tag">{{ dossier.reference }}</strong> — {{ dossier.titre }}<br>
+      sera définitivement supprimé. Cette action est irréversible.
+    </p>
+    <form method="post" style="display:flex;gap:12px;justify-content:center">
+      {% csrf_token %}
+      <a href="{% url 'dossiers:detail' dossier.pk %}" class="btn btn-secondary">Annuler</a>
+      <button type="submit" class="btn btn-danger"><i class="fas fa-trash"></i> Supprimer définitivement</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

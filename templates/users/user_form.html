@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block title %}{{ action }} utilisateur{% endblock %}
+{% block breadcrumb %}<i class="fas fa-chevron-right" style="font-size:10px"></i><a href="{% url 'users:list' %}">Utilisateurs</a><i class="fas fa-chevron-right" style="font-size:10px"></i><span class="bc-current">{{ action }}</span>{% endblock %}
+{% block content %}
+<div class="page-header"><h1 class="page-title"><i class="fas fa-user-gear"></i> {{ action }} un utilisateur</h1></div>
+<div style="max-width:700px">
+  <div class="card">
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      <div class="form-row">
+        {% for field in form %}
+        <div class="form-group">
+          <label>{{ field.label }}</label>
+          {{ field }}
+          {% for e in field.errors %}<ul class="errorlist"><li>{{ e }}</li></ul>{% endfor %}
+        </div>
+        {% endfor %}
+      </div>
+      <div class="form-actions">
+        <a href="{% url 'users:list' %}" class="btn btn-secondary">Annuler</a>
+        <button type="submit" class="btn btn-primary"><i class="fas fa-floppy-disk"></i> Enregistrer</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

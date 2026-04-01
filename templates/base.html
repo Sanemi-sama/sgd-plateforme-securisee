@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}SGD{% endblock %} — Plateforme Sécurisée</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="/static/css/main.css">
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+{% if user.is_authenticated %}
+<!-- ══ SIDEBAR ══════════════════════════════════════════════ -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <span class="brand-icon"><i class="fas fa-shield-halved"></i></span>
+    <span class="brand-text">SGD<span class="brand-dot">.</span>SEC</span>
+  </div>
+
+  <div class="sidebar-user">
+    <div class="user-avatar-sm">
+      {% if user.avatar %}
+        <img src="{{ user.avatar.url }}" alt="">
+      {% else %}
+        <span>{{ user.username|first|upper }}</span>
+      {% endif %}
+    </div>
+    <div class="user-info-sm">
+      <span class="user-name-sm">{{ user.get_full_name|default:user.username }}</span>
+      <span class="user-role-badge {{ user.role_badge_class }}">{{ user.get_role_display }}</span>
+    </div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">Principal</div>
+    <a href="{% url 'dashboard:home' %}" class="nav-item {% if request.resolver_match.app_name == 'dashboard' %}active{% endif %}">
+      <i class="fas fa-gauge-high"></i><span>Dashboard</span>
+    </a>
+    <a href="{% url 'dossiers:list' %}" class="nav-item {% if request.resolver_match.app_name == 'dossiers' and 'client' not in request.path %}active{% endif %}">
+      <i class="fas fa-folder-open"></i><span>Dossiers</span>
+    </a>
+    <a href="{% url 'dossiers:client_list' %}" class="nav-item {% if 'clients' in request.path %}active{% endif %}">
+      <i class="fas fa-building-user"></i><span>Clients</span>
+    </a>
+
+    {% if user.is_manager %}
+    <div class="nav-section-label">Administration</div>
+    <a href="{% url 'users:list' %}" class="nav-item {% if request.resolver_match.app_name == 'users' and 'profil' not in request.path %}active{% endif %}">
+      <i class="fas fa-users-gear"></i><span>Utilisateurs</span>
+    </a>
+    <a href="{% url 'audit:list' %}" class="nav-item {% if request.resolver_match.app_name == 'audit' %}active{% endif %}">
+      <i class="fas fa-clipboard-list"></i><span>Journal d'audit</span>
+    </a>
+    {% endif %}
+
+    <div class="nav-section-label">Outils</div>
+    <a href="{{ WAZUH_URL|default:'#' }}" target="_blank" class="nav-item external">
+      <i class="fas fa-radar"></i><span>Wazuh SIEM</span>
+      <i class="fas fa-arrow-up-right-from-square nav-ext-icon"></i>
+    </a>
+    <a href="{{ THEHIVE_URL|default:'#' }}" target="_blank" class="nav-item external">
+      <i class="fas fa-bug-slash"></i><span>TheHive</span>
+      <i class="fas fa-arrow-up-right-from-square nav-ext-icon"></i>
+    </a>
+    <a href="{{ OPENPROJECT_URL|default:'#' }}" target="_blank" class="nav-item external">
+      <i class="fas fa-diagram-project"></i><span>OpenProject</span>
+      <i class="fas fa-arrow-up-right-from-square nav-ext-icon"></i>
+    </a>
+  </nav>
+
+  <div class="sidebar-footer">
+    <a href="{% url 'users:profile' %}" class="nav-item">
+      <i class="fas fa-circle-user"></i><span>Mon profil</span>
+    </a>
+    <a href="{% url 'users:logout' %}" class="nav-item nav-logout">
+      <i class="fas fa-right-from-bracket"></i><span>Déconnexion</span>
+    </a>
+  </div>
+</aside>
+
+<!-- ══ MAIN LAYOUT ══════════════════════════════════════════ -->
+<div class="main-wrapper">
+
+  <!-- Topbar -->
+  <header class="topbar">
+    <button class="sidebar-toggle" id="sidebarToggle">
+      <i class="fas fa-bars"></i>
+    </button>
+    <div class="topbar-left">
+      <div class="breadcrumb-trail">
+        <span class="bc-home"><i class="fas fa-house"></i></span>
+        {% block breadcrumb %}{% endblock %}
+      </div>
+    </div>
+    <div class="topbar-right">
+      <div class="status-indicator">
+        <span class="status-dot online"></span>
+        <span class="status-label">Système opérationnel</span>
+      </div>
+      <a href="{% url 'dossiers:create' %}" class="btn-new-dossier">
+        <i class="fas fa-plus"></i> Nouveau dossier
+      </a>
+    </div>
+  </header>
+
+  <!-- Messages Django -->
+  {% if messages %}
+  <div class="messages-container">
+    {% for msg in messages %}
+    <div class="alert alert-{{ msg.tags }} alert-dismissible">
+      <i class="fas {% if 'success' in msg.tags %}fa-circle-check{% elif 'error' in msg.tags %}fa-circle-xmark{% else %}fa-circle-info{% endif %}"></i>
+      {{ msg }}
+      <button class="alert-close" onclick="this.parentElement.remove()">×</button>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Page content -->
+  <main class="page-content">
+    {% block content %}{% endblock %}
+  </main>
+
+</div><!-- /main-wrapper -->
+
+{% else %}
+  {% block auth_content %}{% endblock %}
+{% endif %}
+
+<script src="/static/js/main.js"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

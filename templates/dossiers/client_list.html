@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% block title %}Clients{% endblock %}
+{% block breadcrumb %}<i class="fas fa-chevron-right" style="font-size:10px"></i><span class="bc-current">Clients</span>{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title"><i class="fas fa-building-user"></i> Clients ({{ page_obj.paginator.count }})</h1>
+  <div class="page-actions">
+    <a href="{% url 'dossiers:client_create' %}" class="btn btn-primary"><i class="fas fa-plus"></i> Nouveau client</a>
+  </div>
+</div>
+<form method="get" class="filter-bar">
+  <div class="search-box">
+    <i class="fas fa-magnifying-glass"></i>
+    <input type="text" name="q" value="{{ q }}" placeholder="Rechercher un client..." class="form-control">
+  </div>
+  <button type="submit" class="btn btn-secondary"><i class="fas fa-filter"></i></button>
+</form>
+<div class="card" style="padding:0;overflow:hidden">
+  <div class="table-wrapper">
+    <table>
+      <thead><tr><th>Nom</th><th>Email</th><th>Téléphone</th><th>Dossiers</th><th>Actions</th></tr></thead>
+      <tbody>
+        {% for c in page_obj %}
+        <tr>
+          <td><strong>{{ c.nom }}</strong></td>
+          <td>{{ c.email|default:"—" }}</td>
+          <td>{{ c.telephone|default:"—" }}</td>
+          <td><span class="ref-tag">{{ c.dossiers.count }}</span></td>
+          <td>
+            <a href="{% url 'dossiers:client_update' c.pk %}" class="btn btn-secondary btn-sm btn-icon"><i class="fas fa-pen"></i></a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5"><div class="empty-state"><i class="fas fa-building-user"></i><h3>Aucun client</h3></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

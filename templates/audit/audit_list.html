@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+{% block title %}Journal d'audit{% endblock %}
+{% block breadcrumb %}<i class="fas fa-chevron-right" style="font-size:10px"></i><span class="bc-current">Journal d'audit</span>{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-left">
+    <h1 class="page-title"><i class="fas fa-clipboard-list"></i> Journal d'audit</h1>
+    <p class="page-subtitle">{{ page_obj.paginator.count }} entrée{{ page_obj.paginator.count|pluralize }} enregistrée{{ page_obj.paginator.count|pluralize }}</p>
+  </div>
+</div>
+
+<!-- Filtres -->
+<form method="get" class="filter-bar">
+  <div class="search-box">
+    <i class="fas fa-magnifying-glass"></i>
+    <input type="text" name="q" value="{{ q }}" placeholder="Rechercher utilisateur, description..." class="form-control">
+  </div>
+  <select name="action" class="form-control filter-select" onchange="this.form.submit()">
+    <option value="">Toutes les actions</option>
+    {% for val, label in actions %}
+      <option value="{{ val }}" {% if action == val %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
+  <select name="user" class="form-control filter-select" onchange="this.form.submit()">
+    <option value="">Tous les utilisateurs</option>
+    {% for u in users %}
+      <option value="{{ u.pk }}" {% if user_id == u.pk|stringformat:"s" %}selected{% endif %}>{{ u.username }}</option>
+    {% endfor %}
+  </select>
+  <button type="submit" class="btn btn-secondary"><i class="fas fa-filter"></i></button>
+  {% if q or action or user_id %}
+    <a href="{% url 'audit:list' %}" class="btn btn-secondary"><i class="fas fa-xmark"></i></a>
+  {% endif %}
+</form>
+
+<!-- Table -->
+<div class="card" style="padding:0;overflow:hidden">
+  <div class="table-wrapper">
+    <table>
+      <thead><tr>
+        <th>Horodatage</th>
+        <th>Utilisateur</th>
+        <th>Action</th>
+        <th>Description</th>
+        <th>IP</th>
+        <th>Méthode</th>
+        <th>Chemin</th>
+      </tr></thead>
+      <tbody>
+        {% for log in page_obj %}
+        <tr>
+          <td><span class="log-time">{{ log.timestamp|date:"d/m/Y H:i:s" }}</span></td>
+          <td>
+            {% if log.user %}
+              <span style="font-family:'Share Tech Mono',monospace;font-size:12px">{{ log.user.username }}</span>
+              <br><span class="badge {{ log.user.role_badge_class }}" style="font-size:10px">{{ log.user.get_role_display }}</span>
+            {% else %}
+              <span style="color:var(--text-muted)">—</span>
+            {% endif %}
+          </td>
+          <td><span class="log-action-tag">{{ log.action }}</span></td>
+          <td style="max-width:280px;word-break:break-word;font-size:13px">{{ log.description }}</td>
+          <td><span style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text-muted)">{{ log.ip_address|default:"—" }}</span></td>
+          <td>
+            {% if log.method %}
+              <span class="badge {% if log.method == 'POST' %}badge-warning{% else %}badge-secondary{% endif %}" style="font-size:10px">{{ log.method }}</span>
+            {% else %}—{% endif %}
+          </td>
+          <td style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text-muted);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+            {{ log.path|default:"—" }}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7">
+          <div class="empty-state">
+            <i class="fas fa-clipboard-list"></i>
+            <h3>Aucune entrée dans le journal</h3>
+          </div>
+        </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Pagination -->
+{% if page_obj.has_other_pages %}
+<div class="pagination">
+  {% if page_obj.has_previous %}
+    <a href="?page={{ page_obj.previous_page_number }}&q={{ q }}&action={{ action }}&user={{ user_id }}" class="page-btn"><i class="fas fa-chevron-left"></i></a>
+  {% endif %}
+  {% for n in page_obj.paginator.page_range %}
+    {% if n >= page_obj.number|add:"-3" and n <= page_obj.number|add:"3" %}
+    <a href="?page={{ n }}&q={{ q }}&action={{ action }}&user={{ user_id }}" class="page-btn {% if n == page_obj.number %}active{% endif %}">{{ n }}</a>
+    {% endif %}
+  {% endfor %}
+  {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}&q={{ q }}&action={{ action }}&user={{ user_id }}" class="page-btn"><i class="fas fa-chevron-right"></i></a>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

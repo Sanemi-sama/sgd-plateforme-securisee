@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+{% block title %}{{ dossier.reference }}{% endblock %}
+{% block breadcrumb %}
+  <i class="fas fa-chevron-right" style="font-size:10px"></i>
+  <a href="{% url 'dossiers:list' %}">Dossiers</a>
+  <i class="fas fa-chevron-right" style="font-size:10px"></i>
+  <span class="bc-current">{{ dossier.reference }}</span>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-left">
+    <h1 class="page-title">
+      <i class="fas fa-folder"></i>
+      <span class="ref-tag">{{ dossier.reference }}</span>
+      {{ dossier.titre }}
+    </h1>
+    <p class="page-subtitle">Créé le {{ dossier.created_at|date:"d/m/Y à H:i" }} par {{ dossier.cree_par.username|default:"?" }}</p>
+  </div>
+  <div class="page-actions">
+    <span class="badge {{ dossier.statut_badge_class }}" style="font-size:13px;padding:6px 14px">{{ dossier.get_statut_display }}</span>
+    <span class="badge {{ dossier.priorite_badge_class }}" style="font-size:13px;padding:6px 14px">{{ dossier.get_priorite_display }}</span>
+    <a href="{% url 'dossiers:update' dossier.pk %}" class="btn btn-secondary"><i class="fas fa-pen"></i> Modifier</a>
+    {% if user.is_manager %}
+    <a href="{% url 'dossiers:delete' dossier.pk %}" class="btn btn-danger"><i class="fas fa-trash"></i></a>
+    {% endif %}
+  </div>
+</div>
+
+<div class="detail-grid">
+  <!-- Colonne principale -->
+  <div style="display:flex;flex-direction:column;gap:20px">
+
+    <!-- Description -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title"><i class="fas fa-align-left"></i> Description</span>
+      </div>
+      <p style="color:var(--text-secondary);font-size:14px;line-height:1.7">
+        {{ dossier.description|default:"Aucune description."|linebreaks }}
+      </p>
+    </div>
+
+    <!-- Commentaires -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title"><i class="fas fa-comments"></i> Commentaires ({{ dossier.commentaires.count }})</span>
+      </div>
+      {% for c in dossier.commentaires.all %}
+      <div class="comment-item">
+        <div class="comment-header">
+          <span class="comment-author">{{ c.auteur.get_full_name|default:c.auteur.username }}</span>
+          <span class="comment-date">{{ c.created_at|date:"d/m/Y H:i" }}</span>
+        </div>
+        <p class="comment-body">{{ c.contenu }}</p>
+      </div>
+      {% empty %}
+      <p style="color:var(--text-muted);font-size:13px">Aucun commentaire.</p>
+      {% endfor %}
+      <form method="post" style="margin-top:16px">
+        {% csrf_token %}
+        {{ comment_form.contenu }}
+        <input type="hidden" name="commentaire" value="1">
+        <button type="submit" class="btn btn-primary btn-sm" style="margin-top:8px">
+          <i class="fas fa-paper-plane"></i> Ajouter
+        </button>
+      </form>
+    </div>
+
+    <!-- Pièces jointes -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title"><i class="fas fa-paperclip"></i> Pièces jointes ({{ dossier.pieces_jointes.count }})</span>
+      </div>
+      {% for pj in dossier.pieces_jointes.all %}
+      <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+        <i class="fas fa-file" style="color:var(--accent)"></i>
+        <a href="{{ pj.fichier.url }}" target="_blank" style="flex:1">{{ pj.nom }}</a>
+        <span style="font-size:11px;color:var(--text-muted)">{{ pj.created_at|date:"d/m/Y" }}</span>
+      </div>
+      {% empty %}
+      <p style="color:var(--text-muted);font-size:13px">Aucune pièce jointe.</p>
+      {% endfor %}
+      <form method="post" enctype="multipart/form-data" style="margin-top:16px;display:flex;gap:10px;align-items:flex-end">
+        {% csrf_token %}
+        <input type="hidden" name="piece_jointe" value="1">
+        <div style="flex:1">
+          <label>Fichier</label>
+          {{ pj_form.fichier }}
+        </div>
+        <div style="flex:1">
+          <label>Nom</label>
+          {{ pj_form.nom }}
+        </div>
+        <button type="submit" class="btn btn-secondary btn-sm"><i class="fas fa-upload"></i></button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Colonne latérale -->
+  <div style="display:flex;flex-direction:column;gap:20px">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title"><i class="fas fa-circle-info"></i> Informations</span>
+      </div>
+      <div class="detail-meta-row">
+        <span class="detail-meta-label">Client</span>
+        <span class="detail-meta-value">{{ dossier.client.nom }}</span>
+      </div>
+      <div class="detail-meta-row">
+        <span class="detail-meta-label">Catégorie</span>
+        <span class="detail-meta-value">{{ dossier.get_categorie_display }}</span>
+      </div>
+      <div class="detail-meta-row">
+        <span class="detail-meta-label">Responsable</span>
+        <span class="detail-meta-value">{{ dossier.responsable.username|default:"Non assigné" }}</span>
+      </div>
+      <div class="detail-meta-row">
+        <span class="detail-meta-label">Échéance</span>
+        <span class="detail-meta-value">{{ dossier.date_echeance|date:"d/m/Y"|default:"—" }}</span>
+      </div>
+      <div class="detail-meta-row">
+        <span class="detail-meta-label">Mis à jour</span>
+        <span class="detail-meta-value">{{ dossier.updated_at|date:"d/m/Y H:i" }}</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title"><i class="fas fa-building-user"></i> Client</span>
+      </div>
+      <div class="detail-meta-row"><span class="detail-meta-label">Email</span><span class="detail-meta-value">{{ dossier.client.email|default:"—" }}</span></div>
+      <div class="detail-meta-row"><span class="detail-meta-label">Tél.</span><span class="detail-meta-value">{{ dossier.client.telephone|default:"—" }}</span></div>
+      <div class="detail-meta-row"><span class="detail-meta-label">Adresse</span><span class="detail-meta-value">{{ dossier.client.adresse|default:"—" }}</span></div>
+    </div>
+  </div>
+</div>
+{% endblock %}

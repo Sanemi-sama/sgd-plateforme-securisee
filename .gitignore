@@ -7,14 +7,22 @@ db.sqlite3
 /mediafiles/
 /logs/
 
-# Environnement
-.env
+# Environnement — NE JAMAIS COMMITER
+docker/.env
 *.env
 !.env.example
+!docker/.env.example
 
 # Docker
-docker/.env
 docker/ssl/
+docker/wazuh/config/certs/*.pem
+docker/wazuh/config/certs/*.key
+
+# Certificats Wazuh générés localement
+wazuh-certificates/
+wazuh-certs-tool.sh
+wazuh-certificates-tool.log
+config.yml
 
 # IDE
 .vscode/
@@ -24,3 +32,7 @@ docker/ssl/
 # OS
 .DS_Store
 Thumbs.db
+
+# Python venv
+venv/
+.venv/

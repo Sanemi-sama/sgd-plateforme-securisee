@@ -1,7 +1,5 @@
 import os
 from pathlib import Path
-import mimetypes
-mimetypes.add_type("text/css", ".css", True)
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -106,9 +104,12 @@ CACHES = {
 
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 
-WAZUH_API_URL      = env('WAZUH_API_URL',      'https://localhost:55000')
-WAZUH_API_USER     = env('WAZUH_API_USER',     'wazuh-wui')
-WAZUH_API_PASSWORD = env('WAZUH_API_PASSWORD', 'changeme')
+WAZUH_API_URL          = env('WAZUH_API_URL',          'https://wazuh-manager:55000')
+WAZUH_INDEXER_URL      = env('WAZUH_INDEXER_URL',      'https://wazuh-indexer:9200')
+WAZUH_API_USER         = env('WAZUH_API_USER',         'wazuh-wui')
+WAZUH_API_PASSWORD     = env('WAZUH_API_PASSWORD',     'changeme')
+WAZUH_INDEXER_USER     = env('WAZUH_INDEXER_USER',     'admin')
+WAZUH_INDEXER_PASSWORD = env('WAZUH_INDEXER_PASSWORD', 'changeme')
 THEHIVE_URL        = env('THEHIVE_URL',        'http://localhost:9000')
 THEHIVE_API_KEY    = env('THEHIVE_API_KEY',    '')
 OPENPROJECT_URL    = env('OPENPROJECT_URL',    'http://localhost:8081')

@@ -1,0 +1,256 @@
+{% extends 'base.html' %}
+{% block title %}Alertes Wazuh{% endblock %}
+
+{% block breadcrumb %}
+  <i class="fas fa-chevron-right" style="font-size:10px"></i>
+  <span class="bc-current">Alertes Wazuh</span>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-left">
+    <h1 class="page-title"><i class="fas fa-radar"></i> Alertes Wazuh 4.14</h1>
+    <p class="page-subtitle">
+      {% if wazuh_disponible %}
+        <span style="color:var(--green)"><i class="fas fa-circle" style="font-size:8px"></i> Wazuh connecté</span>
+      {% else %}
+        <span style="color:var(--red)"><i class="fas fa-circle" style="font-size:8px"></i> Wazuh non disponible</span>
+      {% endif %}
+    </p>
+  </div>
+</div>
+
+{% if not wazuh_disponible %}
+<div class="card" style="text-align:center;padding:50px">
+  <i class="fas fa-plug" style="font-size:48px;color:var(--red);margin-bottom:16px;display:block;opacity:.5"></i>
+  <h3 style="margin-bottom:8px">Wazuh non joignable</h3>
+  <p style="color:var(--text-muted);font-size:13px">
+    Vérifiez que le conteneur <code>sgd_wazuh_manager</code> tourne et que les variables
+    <code>WAZUH_API_URL</code>, <code>WAZUH_API_USER</code> et <code>WAZUH_API_PASSWORD</code>
+    sont correctes dans votre <code>.env</code>.
+  </p>
+</div>
+{% else %}
+
+<!-- KPIs alertes -->
+<div class="stats-grid" style="margin-bottom:24px">
+  <div class="stat-card accent">
+    <div class="stat-icon"><i class="fas fa-bell"></i></div>
+    <div class="stat-value">{{ summary.total }}</div>
+    <div class="stat-label">Total alertes</div>
+  </div>
+  <div class="stat-card red">
+    <div class="stat-icon"><i class="fas fa-skull-crossbones"></i></div>
+    <div class="stat-value">{{ summary.critical }}</div>
+    <div class="stat-label">Critiques (12-15)</div>
+  </div>
+  <div class="stat-card yellow">
+    <div class="stat-icon"><i class="fas fa-triangle-exclamation"></i></div>
+    <div class="stat-value">{{ summary.high }}</div>
+    <div class="stat-label">Hautes (8-11)</div>
+  </div>
+  <div class="stat-card purple">
+    <div class="stat-icon"><i class="fas fa-exclamation"></i></div>
+    <div class="stat-value">{{ summary.medium }}</div>
+    <div class="stat-label">Moyennes (4-7)</div>
+  </div>
+  <div class="stat-card green">
+    <div class="stat-icon"><i class="fas fa-info"></i></div>
+    <div class="stat-value">{{ summary.low }}</div>
+    <div class="stat-label">Basses (1-3)</div>
+  </div>
+  <div class="stat-card accent">
+    <div class="stat-icon"><i class="fas fa-server"></i></div>
+    <div class="stat-value">{{ agents_summary.active }}</div>
+    <div class="stat-label">Agents actifs</div>
+  </div>
+</div>
+
+<!-- Filtres -->
+<form method="get" class="filter-bar">
+  <select name="level" class="form-control filter-select" onchange="this.form.submit()">
+    <option value="">Tous niveaux</option>
+    <option value="12" {% if min_level == '12' %}selected{% endif %}>Critique (≥12)</option>
+    <option value="8"  {% if min_level == '8'  %}selected{% endif %}>Haute (≥8)</option>
+    <option value="4"  {% if min_level == '4'  %}selected{% endif %}>Moyenne (≥4)</option>
+    <option value="1"  {% if min_level == '1'  %}selected{% endif %}>Toutes</option>
+  </select>
+  <select name="limit" class="form-control filter-select" onchange="this.form.submit()">
+    <option value="20"  {% if limit == 20  %}selected{% endif %}>20 alertes</option>
+    <option value="50"  {% if limit == 50  %}selected{% endif %}>50 alertes</option>
+    <option value="100" {% if limit == 100 %}selected{% endif %}>100 alertes</option>
+  </select>
+  {% if min_level %}
+    <a href="{% url 'dashboard:wazuh_alerts' %}" class="btn btn-secondary"><i class="fas fa-xmark"></i></a>
+  {% endif %}
+</form>
+
+<!-- Table des alertes -->
+<div class="card" style="padding:0;overflow:hidden">
+  <div class="table-wrapper">
+    <table>
+      <thead><tr>
+        <th>Horodatage</th>
+        <th>Niveau</th>
+        <th>Règle</th>
+        <th>Description</th>
+        <th>Agent</th>
+        <th>Groupes</th>
+        <th>Actions</th>
+      </tr></thead>
+      <tbody>
+        {% for alert in alerts %}
+        <tr>
+          <td>
+            <span class="log-time">
+              {{ alert.timestamp|default:"—"|slice:":19"|cut:"T" }}
+            </span>
+          </td>
+          <td>
+            <span class="badge {{ alert._severity_class }}">
+              {{ alert.rule.level }} — {{ alert._severity_label }}
+            </span>
+          </td>
+          <td>
+            <span class="ref-tag">{{ alert.rule.id|default:"—" }}</span>
+          </td>
+          <td style="max-width:280px;font-size:13px">
+            {{ alert.rule.description|default:"—"|truncatechars:80 }}
+          </td>
+          <td>
+            <span style="font-family:'Share Tech Mono',monospace;font-size:12px">
+              {{ alert.agent.name|default:"—" }}
+            </span>
+            {% if alert.agent.ip %}
+              <br><span style="font-size:11px;color:var(--text-muted)">{{ alert.agent.ip }}</span>
+            {% endif %}
+          </td>
+          <td style="font-size:11px;color:var(--text-muted)">
+            {% for g in alert.rule.groups %}
+              <span style="background:rgba(0,212,255,.07);padding:1px 5px;border-radius:3px;margin:1px;display:inline-block">{{ g }}</span>
+            {% endfor %}
+          </td>
+          <td>
+            <div style="display:flex;gap:6px">
+              <!-- Envoyer vers TheHive comme alerte -->
+              <button class="btn btn-secondary btn-sm" title="Créer alerte TheHive"
+                onclick="sendToTheHive({{ alert|json_script:'alert-'|default:'{}' }}, false)"
+                data-alert='{{ alert|escapejs }}'>
+                <i class="fas fa-bug-slash"></i> Alerte
+              </button>
+              <!-- Créer un cas TheHive -->
+              {% if alert.rule.level >= 8 %}
+              <button class="btn btn-danger btn-sm" title="Créer cas TheHive"
+                onclick="sendToTheHive(this, true)">
+                <i class="fas fa-fire"></i> Cas
+              </button>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7">
+          <div class="empty-state">
+            <i class="fas fa-shield-check"></i>
+            <h3>Aucune alerte</h3>
+            <p>Aucune alerte ne correspond aux filtres sélectionnés.</p>
+          </div>
+        </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Modal confirmation TheHive -->
+<div id="thehiveModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;align-items:center;justify-content:center">
+  <div class="card" style="max-width:480px;width:90%;padding:32px">
+    <h3 style="margin-bottom:8px"><i class="fas fa-bug-slash" style="color:var(--accent)"></i> Envoyer vers TheHive</h3>
+    <p style="color:var(--text-muted);font-size:13px;margin-bottom:20px" id="thehiveModalDesc"></p>
+    <div class="form-group">
+      <label>Référence dossier SGD (optionnel)</label>
+      <input type="text" id="dossierRef" class="form-control" placeholder="ex: DOS-2026-0001">
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">Annuler</button>
+      <button class="btn btn-primary" id="confirmSend"><i class="fas fa-paper-plane"></i> Confirmer</button>
+    </div>
+  </div>
+</div>
+
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let _currentAlert = null;
+let _createCase   = false;
+
+// Stocker les alertes en JSON pour le JS
+const alertsData = {{ alerts_json|safe|default:'[]' }};
+
+function sendToTheHive(btn, createCase) {
+  // Récupère l'alerte depuis l'attribut data du bouton
+  const row    = btn.closest('tr');
+  const idx    = row.rowIndex - 1;
+  _currentAlert = alertsData[idx] || {};
+  _createCase   = createCase;
+
+  const desc = _currentAlert.rule?.description || 'Alerte Wazuh';
+  const level = _currentAlert.rule?.level || '?';
+  document.getElementById('thehiveModalDesc').textContent =
+    `${createCase ? 'Créer un CAS' : 'Créer une ALERTE'} dans TheHive pour : "${desc}" (niveau ${level})`;
+  document.getElementById('thehiveModal').style.display = 'flex';
+}
+
+function closeModal() {
+  document.getElementById('thehiveModal').style.display = 'none';
+  _currentAlert = null;
+}
+
+document.getElementById('confirmSend')?.addEventListener('click', async () => {
+  const dossierRef = document.getElementById('dossierRef').value.trim();
+  const btn = document.getElementById('confirmSend');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Envoi...';
+
+  try {
+    const resp = await fetch("{% url 'dashboard:send_to_thehive' %}", {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': '{{ csrf_token }}',
+      },
+      body: JSON.stringify({
+        alert:       _currentAlert,
+        dossier_ref: dossierRef || null,
+        create_case: _createCase,
+      }),
+    });
+
+    const data = await resp.json();
+    closeModal();
+
+    if (data.success) {
+      showNotif('✅ ' + data.message, 'success');
+    } else {
+      showNotif('❌ ' + (data.error || 'Erreur'), 'error');
+    }
+  } catch (e) {
+    showNotif('❌ Erreur réseau', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-paper-plane"></i> Confirmer';
+  }
+});
+
+function showNotif(msg, type) {
+  const el = document.createElement('div');
+  el.className = `alert alert-${type}`;
+  el.style.cssText = 'position:fixed;top:20px;right:20px;z-index:2000;min-width:300px';
+  el.innerHTML = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 4000);
+}
+</script>
+{% endblock %}

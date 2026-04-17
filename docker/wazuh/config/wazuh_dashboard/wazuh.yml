@@ -1,0 +1,8 @@
+# ID: 000
+hosts:
+  - default:
+      url: https://wazuh-manager
+      port: 55000
+      username: wazuh-wui
+      password: 'Wazuh@Securite2026!'
+      run_as: false

@@ -1,0 +1,15 @@
+mkdir -p docker/wazuh/config/wazuh_dashboard
+cat > docker/wazuh/config/wazuh_dashboard/opensearch_dashboards.yml << 'EOF'
+sserver.host: "0.0.0.0"
+server.port: 5601
+opensearch.hosts: ["https://wazuh-indexer:9200"]
+opensearch.ssl.verificationMode: none
+opensearch.username: "kibanaserver"
+opensearch.password: "kibanaserver"
+opensearch.requestHeadersAllowlist: ["securitytenant","Authorization"]
+opensearch_security.multitenancy.enabled: false
+opensearch_security.readonly_mode.roles: ["kibana_read_only"]
+server.ssl.enabled: false
+opensearch.ssl.certificateAuthorities: ["/usr/share/wazuh-dashboard/certs/root-ca.pem"]
+uiSettings.overrides.defaultRoute: "/app/wazuh"
+EOF

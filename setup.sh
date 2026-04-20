@@ -24,7 +24,7 @@ cd "$SCRIPT_DIR"
 echo -e "${BOLD}"
 echo "  ╔═══════════════════════════════════════════╗"
 echo "  ║   SGD — Plateforme Sécurisée de Gestion   ║"
-echo "  ║         Script d'installation v1.0         ║"
+echo "  ║         Script d'installation v1.1         ║"
 echo "  ╚═══════════════════════════════════════════╝"
 echo -e "${NC}"
 
@@ -33,13 +33,11 @@ echo -e "${NC}"
 # ══════════════════════════════════════════════════════════════
 step "Vérification des prérequis"
 
-# Docker
 if ! command -v docker &>/dev/null; then
     error "Docker n'est pas installé. Installe-le depuis https://docs.docker.com/get-docker/"
 fi
 success "Docker $(docker --version | cut -d' ' -f3 | tr -d ',')"
 
-# Docker Compose
 if docker compose version &>/dev/null 2>&1; then
     COMPOSE_CMD="docker compose"
 elif command -v docker-compose &>/dev/null; then
@@ -49,7 +47,6 @@ else
 fi
 success "Docker Compose disponible ($COMPOSE_CMD)"
 
-# OpenSSL
 if ! command -v openssl &>/dev/null; then
     error "OpenSSL n'est pas installé. Lance : sudo apt install openssl"
 fi
@@ -91,7 +88,6 @@ step "Génération des certificats SSL Wazuh"
 CERTS_DIR="docker/wazuh/config/certs"
 mkdir -p "$CERTS_DIR"
 
-# Vérifie si les certificats existent déjà et sont valides
 if [ -f "$CERTS_DIR/root-ca.pem" ] && [ -f "$CERTS_DIR/wazuh-indexer.pem" ] && \
    [ -f "$CERTS_DIR/wazuh-manager.pem" ] && [ -f "$CERTS_DIR/wazuh-dashboard.pem" ]; then
     success "Certificats déjà présents — skipping"
@@ -176,9 +172,8 @@ while [ $WAITED -lt $MAX_WAIT ]; do
     echo -n "."
 done
 echo ""
-
 if [ $WAITED -ge $MAX_WAIT ]; then
-    warn "Django met du temps à démarrer — vérifier avec : $COMPOSE_CMD -f docker/docker-compose.yml logs django"
+    warn "Django met du temps — vérifier avec : $COMPOSE_CMD -f docker/docker-compose.yml logs django"
 fi
 
 # ══════════════════════════════════════════════════════════════
@@ -186,31 +181,50 @@ fi
 # ══════════════════════════════════════════════════════════════
 step "Initialisation sécurité Wazuh Indexer"
 
-info "Attente que l'indexer Wazuh soit prêt (peut prendre 2-3 min)..."
-MAX_WAIT=180
+info "Attente que l'indexer Wazuh soit healthy (peut prendre 3-5 min)..."
+MAX_WAIT=300
 WAITED=0
+INDEXER_READY=false
+
 while [ $WAITED -lt $MAX_WAIT ]; do
-    if docker exec sgd_wazuh_indexer curl -fks \
-        https://localhost:9200/_plugins/_security/health 2>/dev/null | grep -q "UP\|initializing"; then
+    STATUS=$(docker inspect --format='{{.State.Health.Status}}' sgd_wazuh_indexer 2>/dev/null || echo "unknown")
+    if [ "$STATUS" = "healthy" ]; then
+        INDEXER_READY=true
         break
     fi
     sleep 10
     WAITED=$((WAITED + 10))
-    echo -n "."
+    echo -n ". (${WAITED}s - status: $STATUS)"
 done
 echo ""
 
-# Lance securityadmin.sh
-info "Initialisation de la sécurité OpenSearch..."
-docker exec -e OPENSEARCH_JAVA_HOME=/usr/share/wazuh-indexer/jdk sgd_wazuh_indexer \
-    /usr/share/wazuh-indexer/plugins/opensearch-security/tools/securityadmin.sh \
-    -cd /usr/share/wazuh-indexer/config/opensearch-security/ \
-    -icl -nhnv \
-    -cacert /usr/share/wazuh-indexer/config/certs/root-ca.pem \
-    -cert /usr/share/wazuh-indexer/config/certs/admin.pem \
-    -key /usr/share/wazuh-indexer/config/certs/admin-key.pem \
-    -h localhost 2>/dev/null && success "Sécurité OpenSearch initialisée" || \
-    warn "Sécurité déjà initialisée ou indexer pas encore prêt — ce n'est pas bloquant"
+if [ "$INDEXER_READY" = false ]; then
+    warn "L'indexer n'est pas encore healthy après ${MAX_WAIT}s."
+    warn "Lance manuellement après que l'indexer soit prêt :"
+    warn "  docker exec -e OPENSEARCH_JAVA_HOME=/usr/share/wazuh-indexer/jdk sgd_wazuh_indexer \\"
+    warn "    /usr/share/wazuh-indexer/plugins/opensearch-security/tools/securityadmin.sh \\"
+    warn "    -cd /usr/share/wazuh-indexer/config/opensearch-security/ -icl -nhnv \\"
+    warn "    -cacert /usr/share/wazuh-indexer/config/certs/root-ca.pem \\"
+    warn "    -cert /usr/share/wazuh-indexer/config/certs/admin.pem \\"
+    warn "    -key /usr/share/wazuh-indexer/config/certs/admin-key.pem -h localhost"
+else
+    success "Indexer healthy après ${WAITED}s !"
+
+    # Attente supplémentaire pour stabilisation
+    info "Stabilisation de l'indexer (30s)..."
+    sleep 30
+
+    info "Initialisation de la sécurité OpenSearch..."
+    docker exec -e OPENSEARCH_JAVA_HOME=/usr/share/wazuh-indexer/jdk sgd_wazuh_indexer \
+        /usr/share/wazuh-indexer/plugins/opensearch-security/tools/securityadmin.sh \
+        -cd /usr/share/wazuh-indexer/config/opensearch-security/ \
+        -icl -nhnv \
+        -cacert /usr/share/wazuh-indexer/config/certs/root-ca.pem \
+        -cert /usr/share/wazuh-indexer/config/certs/admin.pem \
+        -key /usr/share/wazuh-indexer/config/certs/admin-key.pem \
+        -h localhost 2>/dev/null && success "Sécurité OpenSearch initialisée !" || \
+        warn "Sécurité déjà initialisée — pas bloquant"
+fi
 
 # ══════════════════════════════════════════════════════════════
 # ÉTAPE 6 — Données de démonstration Django
@@ -221,7 +235,7 @@ info "Chargement des données de démonstration..."
 $COMPOSE_CMD -f docker/docker-compose.yml --env-file docker/.env \
     exec -T django python manage.py init_data && \
     success "Données de démonstration chargées" || \
-    warn "Données déjà existantes ou erreur — pas bloquant"
+    warn "Données déjà existantes — pas bloquant"
 
 # ══════════════════════════════════════════════════════════════
 # RÉSUMÉ FINAL
@@ -243,5 +257,5 @@ echo "  ║                                                   ║"
 echo "  ╚═══════════════════════════════════════════════════╝"
 echo -e "${NC}"
 
-warn "Note : Le dashboard Wazuh peut prendre 2-3 minutes supplémentaires à être accessible."
+warn "Le dashboard Wazuh peut prendre 2-3 min supplémentaires à être accessible."
 info "Pour voir les logs : $COMPOSE_CMD -f docker/docker-compose.yml logs -f"

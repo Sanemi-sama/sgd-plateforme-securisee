@@ -5,7 +5,7 @@ opensearch.hosts: ["https://wazuh-indexer:9200"]
 opensearch.ssl.verificationMode: "none"
 
 opensearch.username: admin
-opensearch.password: "${WAZUH_INDEXER_PASSWORD}"
+opensearch.password: Wazuh@Securite2026!
 
 server.ssl.enabled: false
 

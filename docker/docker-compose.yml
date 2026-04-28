@@ -169,10 +169,11 @@ services:
         soft: 65536
         hard: 65536
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-check-certificate -qO- --timeout=5 https://localhost:9200/ || exit 1"]
+      test: ["CMD-SHELL", "curl -sk https://localhost:9200/_cluster/health | grep -vq '\"status\":\"red\"'"]
       interval: 30s
       timeout: 10s
       retries: 15
+      start_period: 180s
 
   # ──────────────────────────────────────────
   # 6. WAZUH MANAGER
@@ -301,10 +302,11 @@ services:
     networks:
       - security_net
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-check-certificate -qO- http://localhost:9200/_cluster/health || exit 1"]
-      interval: 20s
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -vq '\"status\":\"red\"'"]
+      interval: 30s
       timeout: 10s
-      retries: 5
+      retries: 10
+      start_period: 180s
 
   cortex:
     image: thehiveproject/cortex:3.1.7

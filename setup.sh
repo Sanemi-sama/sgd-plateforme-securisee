@@ -207,8 +207,8 @@ fi
 # ══════════════════════════════════════════════════════════════
 step "Initialisation sécurité Wazuh Indexer"
 
-info "Attente que l'indexer Wazuh soit healthy (peut prendre 3-5 min)..."
-MAX_WAIT=300
+info "Attente que l'indexer Wazuh soit healthy (peut prendre 3-7 min)..."
+MAX_WAIT=420
 WAITED=0
 INDEXER_READY=false
 

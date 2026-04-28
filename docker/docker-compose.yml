@@ -257,6 +257,7 @@ services:
     image: strangebee/thehive:5.3
     container_name: sgd_thehive
     restart: unless-stopped
+    user: "1000:1000"
     ports:
       - "9000:9000"
     environment:

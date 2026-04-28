@@ -133,6 +133,7 @@ services:
     restart: unless-stopped
     environment:
       - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
+      - INDEXER_PASSWORD=${WAZUH_INDEXER_PASSWORD:-Wazuh@Securite2026!}
       - bootstrap.memory_lock=true
       - INDEXER_SECURITY_SSL_HTTP_PEMCERT_FILEPATH=/usr/share/wazuh-indexer/config/certs/indexer.pem
       - INDEXER_SECURITY_SSL_HTTP_PEMKEY_FILEPATH=/usr/share/wazuh-indexer/config/certs/indexer-key.pem
@@ -191,7 +192,7 @@ services:
     environment:
       INDEXER_URL: https://wazuh-indexer:9200
       INDEXER_USERNAME: admin
-      INDEXER_PASSWORD: ${WAZUH_INDEXER_PASSWORD:-admin}
+      INDEXER_PASSWORD: ${WAZUH_INDEXER_PASSWORD:-Wazuh@Securite2026!}
       FILEBEAT_SSL_VERIFICATION_MODE: none
       SSL_CERTIFICATE_AUTHORITIES: /etc/ssl/root-ca.pem
       SSL_CERTIFICATE: /etc/ssl/filebeat.pem
@@ -229,12 +230,12 @@ services:
     ports:
       - "5601:5601"
     environment:
-      # OPENSEARCH_HOSTS: '["https://wazuh-indexer:9200"]'
+      INDEXER_URL: https://wazuh-indexer:9200
+      INDEXER_USER: admin
+      INDEXER_PASSWORD: ${WAZUH_INDEXER_PASSWORD:-Wazuh@Securite2026!}
       WAZUH_API_URL: https://wazuh-manager
       WAZUH_API_USER: ${WAZUH_API_USER:-wazuh-wui}
       WAZUH_API_PASSWORD: ${WAZUH_API_PASSWORD:-Wazuh@Securite2026!}
-      DASHBOARD_USERNAME: ${DASHBOARD_USERNAME:-kibanaserver}
-      DASHBOARD_PASSWORD: ${DASHBOARD_PASSWORD:-Wazuh@Securite2026!}
     volumes:
       - ./wazuh/config/certs/wazuh-dashboard.pem:/usr/share/wazuh-dashboard/certs/dashboard.pem:ro
       - ./wazuh/config/certs/wazuh-dashboard-key.pem:/usr/share/wazuh-dashboard/certs/dashboard-key.pem:ro
@@ -256,7 +257,6 @@ services:
     image: strangebee/thehive:5.3
     container_name: sgd_thehive
     restart: unless-stopped
-    user: "1000:1000"
     ports:
       - "9000:9000"
     environment:
@@ -265,7 +265,8 @@ services:
       - thehive_data:/data/db
       - thehive_index:/data/index
     depends_on:
-      - cassandra
+      cassandra:
+        condition: service_healthy
     networks:
       - security_net
 

@@ -76,14 +76,12 @@ fi
 if [ "$CLEAN_MODE" = true ]; then
     step "Nettoyage des anciennes données"
 
-    warn "Arrêt et suppression des conteneurs..."
-    $COMPOSE_CMD -f docker/docker-compose.yml down -v 2>/dev/null || true
-    docker volume rm sgd-plateforme-securisee_wazuh_indexer_data 2>/dev/null || true
-    docker volume rm sgd-plateforme-securisee_postgres_data 2>/dev/null || true
-    docker volume rm sgd-plateforme-securisee_cortex_data 2>/dev/null || true
-    docker volume rm sgd-plateforme-securisee_elasticsearch_data 2>/dev/null || true
-    docker volume rm sgd-plateforme-securisee_thehive_data 2>/dev/null || true
-    docker volume rm sgd-plateforme-securisee_thehive_index 2>/dev/null || true
+    warn "Arrêt et suppression des conteneurs et volumes..."
+    $COMPOSE_CMD -f docker/docker-compose.yml down -v --remove-orphans 2>/dev/null || true
+    
+    # Nettoyage ciblé uniquement sur ce projet
+    PROJECT_NAME="sgd-plateforme-securisee"
+    docker volume ls -q | grep "^${PROJECT_NAME}_" | xargs -r docker volume rm 2>/dev/null || true
 
     warn "Suppression des conteneurs orphelins..."
     docker container prune -f 2>/dev/null || true
@@ -280,7 +278,7 @@ echo "  ║  🐝 TheHive           →  http://localhost:9000    ║"
 echo "  ║  📋 OpenProject       →  http://localhost:8081    ║"
 echo "  ║                                                   ║"
 echo "  ║  Identifiants SGD :  admin / Admin1234!           ║"
-echo "  ║  Identifiants Wazuh: admin / admin                ║"
+  echo "  ║  Identifiants Wazuh: admin / Wazuh@Securite2026!  ║"
 echo "  ║                                                   ║"
 echo "  ╚═══════════════════════════════════════════════════╝"
 echo -e "${NC}"

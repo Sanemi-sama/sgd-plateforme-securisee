@@ -52,6 +52,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'config.context_processors.external_tools',
             ],
         },
     },
@@ -110,8 +111,10 @@ WAZUH_API_USER         = env('WAZUH_API_USER',         'wazuh-wui')
 WAZUH_API_PASSWORD     = env('WAZUH_API_PASSWORD',     'changeme')
 WAZUH_INDEXER_USER     = env('WAZUH_INDEXER_USER',     'admin')
 WAZUH_INDEXER_PASSWORD = env('WAZUH_INDEXER_PASSWORD', 'changeme')
-THEHIVE_URL        = env('THEHIVE_URL',        'http://localhost:9000')
-THEHIVE_API_KEY    = env('THEHIVE_API_KEY',    '')
+WAZUH_DASHBOARD_URL    = env('WAZUH_DASHBOARD_URL',    'http://localhost:5601')
+THEHIVE_URL            = env('THEHIVE_URL',            'http://thehive:9000')
+THEHIVE_EXTERNAL_URL   = env('THEHIVE_EXTERNAL_URL',   'http://localhost:9000')
+THEHIVE_API_KEY        = env('THEHIVE_API_KEY',        '')
 OPENPROJECT_URL    = env('OPENPROJECT_URL',    'http://localhost:8081')
 OPENPROJECT_API_KEY= env('OPENPROJECT_API_KEY','')
 

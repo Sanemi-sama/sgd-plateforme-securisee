@@ -56,9 +56,8 @@ make setup
 | Service | URL | Identifiants par défaut |
 |---------|-----|------------------------|
 | **Django** | https://localhost | Défini dans `.env` |
-| **Wazuh Dashboard** | https://localhost:5601 | admin / (défini dans .env) |
+| **Wazuh Dashboard** | http://localhost:5601 | admin / (défini dans .env) |
 | **TheHive** | http://localhost:9000 | admin@thehive.local / secret |
-| **OpenProject** | http://localhost:8080 | admin / admin |
 
 ## 🔧 Commandes utiles
 

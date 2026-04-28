@@ -119,13 +119,14 @@ class TheHiveService:
         return data[0] if data[0] else []
 
     def is_available(self):
-        """Vérifie si TheHive répond."""
+        """Vérifie si TheHive répond (même si non authentifié)."""
         try:
             resp = requests.get(
                 f"{self.base_url}/api/v1/status",
                 headers=self._headers(), timeout=5,
             )
-            return resp.status_code == 200
+            # 200 = OK, 401 = Vivant mais clé API manquante/erronée
+            return resp.status_code in (200, 401)
         except Exception:
             return False
 

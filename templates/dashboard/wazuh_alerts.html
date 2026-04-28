@@ -107,8 +107,8 @@
             </span>
           </td>
           <td>
-            <span class="badge {{ alert._severity_class }}">
-              {{ alert.rule.level }} — {{ alert._severity_label }}
+            <span class="badge {{ alert.severity_class }}">
+              {{ alert.rule.level }} — {{ alert.severity_label }}
             </span>
           </td>
           <td>
@@ -134,8 +134,7 @@
             <div style="display:flex;gap:6px">
               <!-- Envoyer vers TheHive comme alerte -->
               <button class="btn btn-secondary btn-sm" title="Créer alerte TheHive"
-                onclick="sendToTheHive({{ alert|json_script:'alert-'|default:'{}' }}, false)"
-                data-alert='{{ alert|escapejs }}'>
+                onclick="sendToTheHive(this, false)">
                 <i class="fas fa-bug-slash"></i> Alerte
               </button>
               <!-- Créer un cas TheHive -->

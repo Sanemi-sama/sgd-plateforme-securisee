@@ -3,9 +3,16 @@
 #  SGD — Script d'installation automatique
 #  Compatible : Linux (Debian/Ubuntu/Parrot/Kali) & macOS
 #  Usage      : bash setup.sh
+#               bash setup.sh --clean (nettoie puis réinstalle)
 # ══════════════════════════════════════════════════════════════
 
 set -e
+
+# ── Arguments ──────────────────────────────────────────────────
+CLEAN_MODE=false
+if [[ "$1" == "--clean" ]]; then
+    CLEAN_MODE=true
+fi
 
 # ── Couleurs ──────────────────────────────────────────────────
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
@@ -61,6 +68,25 @@ if [ "$CURRENT_MAP" -lt 262144 ]; then
     success "vm.max_map_count=262144 configuré"
 else
     success "vm.max_map_count=$CURRENT_MAP (OK)"
+fi
+
+# ══════════════════════════════════════════════════════════════
+# ÉTAPE 0b — Nettoyage si mode --clean
+# ══════════════════════════════════════════════════════════════
+if [ "$CLEAN_MODE" = true ]; then
+    step "Nettoyage des anciennes données"
+
+    warn "Arrêt et suppression des conteneurs..."
+    $COMPOSE_CMD -f docker/docker-compose.yml down -v 2>/dev/null || true
+    docker volume rm sgd-plateforme-securisee_wazuh_indexer_data 2>/dev/null || true
+    docker volume rm sgd-plateforme-securisee_postgres_data 2>/dev/null || true
+    docker volume rm sgd-plateforme-securisee_cortex_data 2>/dev/null || true
+    docker volume rm sgd-plateforme-securisee_elasticsearch_data 2>/dev/null || true
+
+    warn "Suppression des conteneurs orphelins..."
+    docker container prune -f 2>/dev/null || true
+
+    success "Nettoyage terminé"
 fi
 
 # ══════════════════════════════════════════════════════════════

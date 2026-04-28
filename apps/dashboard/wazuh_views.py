@@ -16,7 +16,6 @@ def wazuh_alerts(request):
     """Page principale des alertes Wazuh."""
     wazuh = WazuhService()
 
-    # Filtres
     min_level = request.GET.get('level', '')
     limit     = int(request.GET.get('limit', 20))
 
@@ -29,17 +28,18 @@ def wazuh_alerts(request):
         alerts         = wazuh.get_alerts(limit=limit, min_level=min_level or None)
         summary        = wazuh.get_alerts_summary()
         agents_summary = wazuh.get_agents_summary()
-        # Ajoute label sévérité à chaque alerte
         for alert in alerts:
             level = alert.get('rule', {}).get('level', 1)
             sev_label, sev_class = WazuhService.level_to_severity(level)
-            alert['_severity_label'] = sev_label
-            alert['_severity_class'] = sev_class
+            # Django templates cannot access keys starting with "_"
+            alert['severity_label'] = sev_label
+            alert['severity_class'] = sev_class
 
     log_action(request.user, 'OTHER', "Consultation des alertes Wazuh")
 
     return render(request, 'dashboard/wazuh_alerts.html', {
         'alerts':           alerts,
+        'alerts_json':      json.dumps(alerts),
         'summary':          summary,
         'agents_summary':   agents_summary,
         'wazuh_disponible': wazuh_disponible,
@@ -93,12 +93,33 @@ def send_to_thehive(request):
 @login_required
 @require_manager
 def wazuh_status(request):
-    """API JSON — statut Wazuh pour le dashboard."""
+    """API JSON — statut Wazuh pour le dashboard graphique."""
     wazuh = WazuhService()
     if wazuh.is_available():
+        # Récupère la liste des agents avec détails
+        agents_raw    = wazuh.get_agents()
+        agents_list   = [
+            {
+                'name':   a.get('name', 'Agent'),
+                'ip':     a.get('registerIP', a.get('ip', '')),
+                'status': a.get('status', 'inactive'),
+                'os':     a.get('os', {}).get('name', ''),
+                'id':     a.get('id', ''),
+            }
+            for a in agents_raw
+        ]
         return JsonResponse({
-            'available':     True,
-            'summary':       wazuh.get_alerts_summary(),
-            'agents':        wazuh.get_agents_summary(),
+            'available':    True,
+            'summary':      wazuh.get_alerts_summary(),
+            'agents':       wazuh.get_agents_summary(),
+            'agents_list':  agents_list,
         })
     return JsonResponse({'available': False})
+
+
+@login_required
+@require_manager
+def wazuh_dashboard(request):
+    """Page dashboard sécurité avec graphiques dynamiques."""
+    log_action(request.user, 'OTHER', "Consultation du dashboard sécurité Wazuh")
+    return render(request, 'dashboard/wazuh_dashboard.html')

@@ -1,13 +1,12 @@
 # ══════════════════════════════════════════════
 #  SGD — Stack complète
-#  Wazuh 4.14.4 + TheHive 5 + OpenProject 14
+#  Wazuh 4.14.4 + TheHive 5
 # ══════════════════════════════════════════════
 
 networks:
   frontend_net:
   backend_net:
   security_net:
-  project_net:
 
 volumes:
   postgres_data:
@@ -20,9 +19,10 @@ volumes:
   # TheHive
   thehive_data:
   thehive_index:
-  # OpenProject
-  openproject_assets:
-  openproject_pgdata:
+  cassandra_data:
+  # Cortex
+  cortex_data:
+  elasticsearch_data:
 
 services:
 
@@ -169,10 +169,10 @@ services:
         soft: 65536
         hard: 65536
     healthcheck:
-      test: ["CMD-SHELL", "curl -fks https://localhost:9200/_plugins/_security/health | grep -q '\"status\":\"UP\"'"]
+      test: ["CMD-SHELL", "wget --no-check-certificate -qO- --timeout=5 https://localhost:9200/ || exit 1"]
       interval: 30s
       timeout: 10s
-      retries: 10
+      retries: 15
 
   # ──────────────────────────────────────────
   # 6. WAZUH MANAGER
@@ -260,8 +260,8 @@ services:
     environment:
       JVM_OPTS: "-Xms512m -Xmx1024m"
     volumes:
-      - thehive_data:/opt/thp/thehive/data
-      - thehive_index:/opt/thp/thehive/index
+      - thehive_data:/data/db
+      - thehive_index:/data/index
     depends_on:
       - cassandra
     networks:
@@ -273,8 +273,10 @@ services:
     restart: unless-stopped
     environment:
       CASSANDRA_CLUSTER_NAME: thehive
-      HEAP_NEWSIZE: 128M
-      MAX_HEAP_SIZE: 512M
+      HEAP_NEWSIZE: 256M
+      MAX_HEAP_SIZE: 1G
+    volumes:
+      - cassandra_data:/var/lib/cassandra
     networks:
       - security_net
     healthcheck:
@@ -284,34 +286,42 @@ services:
       retries: 10
 
   # ──────────────────────────────────────────
-  # 9. OPENPROJECT
+  # 9. CORTEX
   # ──────────────────────────────────────────
-  openproject:
-    image: openproject/openproject:14
-    container_name: sgd_openproject
+  elasticsearch-cortex:
+    image: elasticsearch:7.17.10
+    container_name: sgd_elasticsearch_cortex
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    networks:
+      - security_net
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-check-certificate -qO- http://localhost:9200/_cluster/health || exit 1"]
+      interval: 20s
+      timeout: 10s
+      retries: 5
+
+  cortex:
+    image: thehiveproject/cortex:3.1.7
+    container_name: sgd_cortex
     restart: unless-stopped
     ports:
-      - "8081:80"
+      - "9001:9001"
+    command:
+      - --es-uri
+      - http://elasticsearch-cortex:9200
     environment:
-      OPENPROJECT_HOST__NAME: localhost:8081
-      OPENPROJECT_SECRET_KEY_BASE: ${OPENPROJECT_SECRET:-changeme_long_secret}
-      DATABASE_URL: postgresql://${OP_DB_USER:-op_user}:${OP_DB_PASS:-changeme}@op_db/openproject
+      - JOB_DIRECTORY=/tmp/cortex-jobs
     volumes:
-      - openproject_assets:/var/openproject/assets
+      - cortex_data:/data
+      - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
-      - op_db
+      elasticsearch-cortex:
+        condition: service_healthy
     networks:
-      - project_net
-
-  op_db:
-    image: postgres:15-alpine
-    container_name: sgd_op_postgres
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: openproject
-      POSTGRES_USER: ${OP_DB_USER:-op_user}
-      POSTGRES_PASSWORD: ${OP_DB_PASS:-changeme}
-    volumes:
-      - openproject_pgdata:/var/lib/postgresql/data
-    networks:
-      - project_net
+      - security_net

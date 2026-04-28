@@ -56,17 +56,20 @@
     </a>
     {% endif %}
 
-    <div class="nav-section-label">Outils</div>
-    <a href="{{ WAZUH_URL|default:'#' }}" target="_blank" class="nav-item external">
-      <i class="fas fa-radar"></i><span>Wazuh SIEM</span>
+    {% if user.is_manager %}
+    <div class="nav-section-label">Sécurité</div>
+    <a href="{% url 'dashboard:wazuh_alerts' %}" class="nav-item {% if 'wazuh' in request.path %}active{% endif %}">
+      <i class="fas fa-radar"></i><span>Alertes Wazuh</span>
+    </a>
+    {% endif %}
+
+    <div class="nav-section-label">Outils externes</div>
+    <a href="{{ WAZUH_URL }}" target="_blank" class="nav-item external">
+      <i class="fas fa-radar"></i><span>Wazuh Dashboard</span>
       <i class="fas fa-arrow-up-right-from-square nav-ext-icon"></i>
     </a>
-    <a href="{{ THEHIVE_URL|default:'#' }}" target="_blank" class="nav-item external">
+    <a href="{{ THEHIVE_URL }}" target="_blank" class="nav-item external">
       <i class="fas fa-bug-slash"></i><span>TheHive</span>
-      <i class="fas fa-arrow-up-right-from-square nav-ext-icon"></i>
-    </a>
-    <a href="{{ OPENPROJECT_URL|default:'#' }}" target="_blank" class="nav-item external">
-      <i class="fas fa-diagram-project"></i><span>OpenProject</span>
       <i class="fas fa-arrow-up-right-from-square nav-ext-icon"></i>
     </a>
   </nav>

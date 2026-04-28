@@ -133,7 +133,7 @@ services:
     restart: unless-stopped
     environment:
       - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
-      - INDEXER_PASSWORD=${WAZUH_INDEXER_PASSWORD:-Wazuh@Securite2026!}
+      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=${WAZUH_INDEXER_PASSWORD:-Wazuh@Securite2026!}
       - bootstrap.memory_lock=true
       - INDEXER_SECURITY_SSL_HTTP_PEMCERT_FILEPATH=/usr/share/wazuh-indexer/config/certs/indexer.pem
       - INDEXER_SECURITY_SSL_HTTP_PEMKEY_FILEPATH=/usr/share/wazuh-indexer/config/certs/indexer-key.pem
@@ -233,9 +233,12 @@ services:
       INDEXER_URL: https://wazuh-indexer:9200
       INDEXER_USER: admin
       INDEXER_PASSWORD: ${WAZUH_INDEXER_PASSWORD:-Wazuh@Securite2026!}
-      WAZUH_API_URL: https://wazuh-manager
+      WAZUH_API_URL: https://wazuh-manager:55000
       WAZUH_API_USER: ${WAZUH_API_USER:-wazuh-wui}
       WAZUH_API_PASSWORD: ${WAZUH_API_PASSWORD:-Wazuh@Securite2026!}
+      # Désactivation vérification SSL pour le dev
+      WAZUH_API_CA: "false"
+      OPEN_SEARCH_CA: "false"
     volumes:
       - ./wazuh/config/certs/wazuh-dashboard.pem:/usr/share/wazuh-dashboard/certs/dashboard.pem:ro
       - ./wazuh/config/certs/wazuh-dashboard-key.pem:/usr/share/wazuh-dashboard/certs/dashboard-key.pem:ro
@@ -257,7 +260,6 @@ services:
     image: strangebee/thehive:5.3
     container_name: sgd_thehive
     restart: unless-stopped
-    user: "1000:1000"
     ports:
       - "9000:9000"
     environment:
@@ -266,8 +268,27 @@ services:
       - thehive_data:/data/db
       - thehive_index:/data/index
     depends_on:
+      fix-permissions:
+        condition: service_completed_successfully
       cassandra:
         condition: service_healthy
+    networks:
+      - security_net
+
+  # Conteneur temporaire pour fixer les permissions
+  fix-permissions:
+    image: busybox
+    container_name: sgd_fix_permissions
+    user: root
+    command: >
+      sh -c "chown -R 1000:1000 /data/thehive &&
+             chown -R 1000:1000 /data/index &&
+             chown -R 999:999 /data/cassandra &&
+             chmod -R 770 /data/thehive /data/index /data/cassandra"
+    volumes:
+      - thehive_data:/data/thehive
+      - thehive_index:/data/index
+      - cassandra_data:/data/cassandra
     networks:
       - security_net
 

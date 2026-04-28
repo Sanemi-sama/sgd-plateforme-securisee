@@ -243,16 +243,27 @@ else
     info "Stabilisation de l'indexer (30s)..."
     sleep 30
 
-    info "Initialisation de la sécurité OpenSearch..."
-    docker exec -e OPENSEARCH_JAVA_HOME=/usr/share/wazuh-indexer/jdk sgd_wazuh_indexer \
-        /usr/share/wazuh-indexer/plugins/opensearch-security/tools/securityadmin.sh \
-        -cd /usr/share/wazuh-indexer/config/opensearch-security/ \
-        -icl -nhnv \
-        -cacert /usr/share/wazuh-indexer/config/certs/root-ca.pem \
-        -cert /usr/share/wazuh-indexer/config/certs/admin.pem \
-        -key /usr/share/wazuh-indexer/config/certs/admin-key.pem \
-        -h localhost 2>/dev/null && success "Sécurité OpenSearch initialisée !" || \
-        warn "Sécurité déjà initialisée — pas bloquant"
+    info "Initialisation de la sécurité OpenSearch (plusieurs tentatives possibles)..."
+    RETRY_COUNT=0
+    while [ $RETRY_COUNT -lt 3 ]; do
+        docker exec -e OPENSEARCH_JAVA_HOME=/usr/share/wazuh-indexer/jdk sgd_wazuh_indexer \
+            /usr/share/wazuh-indexer/plugins/opensearch-security/tools/securityadmin.sh \
+            -cd /usr/share/wazuh-indexer/config/opensearch-security/ \
+            -icl -nhnv \
+            -cacert /usr/share/wazuh-indexer/config/certs/root-ca.pem \
+            -cert /usr/share/wazuh-indexer/config/certs/admin.pem \
+            -key /usr/share/wazuh-indexer/config/certs/admin-key.pem \
+            -h localhost 2>/dev/null
+        
+        if [ $? -eq 0 ]; then
+            success "Sécurité OpenSearch initialisée (Index .opendistro_security créé) !"
+            break
+        else
+            RETRY_COUNT=$((RETRY_COUNT + 1))
+            warn "Tentative $RETRY_COUNT échouée, nouvel essai dans 20s..."
+            sleep 20
+        fi
+    done
 fi
 
 # ══════════════════════════════════════════════════════════════

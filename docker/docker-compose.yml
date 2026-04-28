@@ -141,10 +141,10 @@ services:
       - INDEXER_SECURITY_SSL_TRANSPORT_PEMCERT_FILEPATH=/usr/share/wazuh-indexer/config/certs/indexer.pem
       - INDEXER_SECURITY_SSL_TRANSPORT_PEMKEY_FILEPATH=/usr/share/wazuh-indexer/config/certs/indexer-key.pem
       - INDEXER_SECURITY_SSL_TRANSPORT_PEMTRUSTEDCAS_FILEPATH=/usr/share/wazuh-indexer/config/certs/root-ca.pem
-      - INDEXER_SECURITY_AUTHCZ_ADMIN_DN=CN=admin,OU=Wazuh,O=Wazuh,L=California,C=US
+      - INDEXER_SECURITY_AUTHCZ_ADMIN_DN=CN=admin,OU=Wazuh,O=SGD,C=BJ
       - INDEXER_SECURITY_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES=true
       - INDEXER_SECURITY_ENABLE_SNAPSHOT_RESTORE_PRIVILEGE=true
-      - INDEXER_SECURITY_NODES_DN=CN=wazuh-indexer,OU=Wazuh,O=Wazuh,L=California,C=US
+      - INDEXER_SECURITY_NODES_DN=CN=wazuh-indexer,OU=Wazuh,O=SGD,C=BJ
       - INDEXER_SECURITY_RESTAPI_ROLES_ENABLED=["all_access", "security_rest_api_access"]
       - INDEXER_SECURITY_SYSTEM_INDICES_ENABLED=true
       - INDEXER_SECURITY_SYSTEM_INDICES_INDICES=[".opendistro-alerting-config",".opendistro-alerting-alert*",".opendistro-anomaly-results*",".opendistro-anomaly-detector*",".opendistro-anomaly-checkpoints",".opendistro-anomaly-detection-state",".opendistro-reports-*",".opendistro-notifications-*",".opendistro-notebooks",".opensearch-observability",".opendistro-asynchronous-search-response*",".replication-metadata-store"]

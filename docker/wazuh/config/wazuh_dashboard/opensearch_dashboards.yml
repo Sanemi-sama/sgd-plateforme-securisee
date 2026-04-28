@@ -4,8 +4,8 @@ server.port: 5601
 opensearch.hosts: ["https://wazuh-indexer:9200"]
 opensearch.ssl.verificationMode: "none"
 
-opensearch.username: kibanaserver
-opensearch.password: kibanaserver
+opensearch.username: admin
+opensearch.password: "${WAZUH_INDEXER_PASSWORD}"
 
 server.ssl.enabled: false
 

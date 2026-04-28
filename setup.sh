@@ -82,6 +82,8 @@ if [ "$CLEAN_MODE" = true ]; then
     docker volume rm sgd-plateforme-securisee_postgres_data 2>/dev/null || true
     docker volume rm sgd-plateforme-securisee_cortex_data 2>/dev/null || true
     docker volume rm sgd-plateforme-securisee_elasticsearch_data 2>/dev/null || true
+    docker volume rm sgd-plateforme-securisee_thehive_data 2>/dev/null || true
+    docker volume rm sgd-plateforme-securisee_thehive_index 2>/dev/null || true
 
     warn "Suppression des conteneurs orphelins..."
     docker container prune -f 2>/dev/null || true

@@ -135,26 +135,9 @@ services:
       - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
       - OPENSEARCH_INITIAL_ADMIN_PASSWORD=${WAZUH_INDEXER_PASSWORD:-Wazuh@Securite2026!}
       - bootstrap.memory_lock=true
-      - INDEXER_SECURITY_SSL_HTTP_PEMCERT_FILEPATH=/usr/share/wazuh-indexer/config/certs/indexer.pem
-      - INDEXER_SECURITY_SSL_HTTP_PEMKEY_FILEPATH=/usr/share/wazuh-indexer/config/certs/indexer-key.pem
-      - INDEXER_SECURITY_SSL_HTTP_PEMTRUSTEDCAS_FILEPATH=/usr/share/wazuh-indexer/config/certs/root-ca.pem
-      - INDEXER_SECURITY_SSL_TRANSPORT_PEMCERT_FILEPATH=/usr/share/wazuh-indexer/config/certs/indexer.pem
-      - INDEXER_SECURITY_SSL_TRANSPORT_PEMKEY_FILEPATH=/usr/share/wazuh-indexer/config/certs/indexer-key.pem
-      - INDEXER_SECURITY_SSL_TRANSPORT_PEMTRUSTEDCAS_FILEPATH=/usr/share/wazuh-indexer/config/certs/root-ca.pem
-      - "INDEXER_SECURITY_AUTHCZ_ADMIN_DN=C=BJ,O=SGD,OU=Wazuh,CN=admin"
-      - INDEXER_SECURITY_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES=true
-      - INDEXER_SECURITY_ENABLE_SNAPSHOT_RESTORE_PRIVILEGE=true
-      - "INDEXER_SECURITY_NODES_DN=C=BJ,O=SGD,OU=Wazuh,CN=wazuh-indexer"
-      - INDEXER_SECURITY_RESTAPI_ROLES_ENABLED=["all_access", "security_rest_api_access"]
-      - INDEXER_SECURITY_SYSTEM_INDICES_ENABLED=true
-      - INDEXER_SECURITY_SYSTEM_INDICES_INDICES=[".opendistro-alerting-config",".opendistro-alerting-alert*",".opendistro-anomaly-results*",".opendistro-anomaly-detector*",".opendistro-anomaly-checkpoints",".opendistro-anomaly-detection-state",".opendistro-reports-*",".opendistro-notifications-*",".opendistro-notebooks",".opensearch-observability",".opendistro-asynchronous-search-response*",".replication-metadata-store"]
-      - CLUSTER_NAME=wazuh-cluster
-      - NETWORK_HOST=0.0.0.0
-      - NODE_NAME=wazuh-indexer
-      - DISCOVERY_TYPE=single-node
-      - compatibility.override_main_response_version=true
     volumes:
       - wazuh_indexer_data:/var/lib/wazuh-indexer
+      - ./wazuh/config/opensearch.yml:/usr/share/wazuh-indexer/config/opensearch.yml:ro
       - ./wazuh/config/certs/root-ca.pem:/usr/share/wazuh-indexer/config/certs/root-ca.pem:ro
       - ./wazuh/config/certs/wazuh-indexer.pem:/usr/share/wazuh-indexer/config/certs/indexer.pem:ro
       - ./wazuh/config/certs/wazuh-indexer-key.pem:/usr/share/wazuh-indexer/config/certs/indexer-key.pem:ro

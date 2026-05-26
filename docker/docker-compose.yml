@@ -248,43 +248,54 @@ services:
   # 8. THEHIVE
   # ──────────────────────────────────────────
   thehive:
-    image: strangebee/thehive:5.3
+    image: thehiveproject/thehive4:4.1.24
     container_name: sgd_thehive
     restart: unless-stopped
     ports:
       - "9000:9000"
     environment:
-      JVM_OPTS: "-Xms512m -Xmx1024m"
+      - JVM_OPTS=-Xms512m -Xmx1024m
+      # Configuration de la base de données (Cassandra)
+      - CASSANDRA_HOSTS=cassandra
+      # Configuration de l'index (Elasticsearch)
+      - ELASTICSEARCH_HOST=elasticsearch-cortex
+      - ELASTICSEARCH_PORT=9200
+    # Plus besoin de la section 'command', les variables d'environnement s'occupent de tout !
     volumes:
       - thehive_data:/data/db
       - thehive_index:/data/index
     depends_on:
-      fix-permissions:
-        condition: service_completed_successfully
       cassandra:
+        condition: service_healthy
+      elasticsearch-cortex:
         condition: service_healthy
     networks:
       - security_net
 
+
   # Conteneur temporaire pour fixer les permissions
+    # Conteneur temporaire pour fixer proprement les permissions
   fix-permissions:
     image: busybox
     container_name: sgd_fix_permissions
     user: root
     command: >
-      sh -c "chown -R 1000:1000 /data/thehive &&
-             chown -R 1000:1000 /data/index &&
-             chown -R 999:999 /data/cassandra &&
-             chmod -R 770 /data/thehive /data/index /data/cassandra"
+      sh -c "
+      chown -R 999:999 /data/thehive_db &&
+      chown -R 999:999 /data/thehive_index &&
+      chown -R 999:999 /data/cassandra_db &&
+      chmod -R 750 /data/thehive_db /data/thehive_index /data/cassandra_db
+      "
     volumes:
-      - thehive_data:/data/thehive
-      - thehive_index:/data/index
-      - cassandra_data:/data/cassandra
+      - thehive_data:/data/thehive_db
+      - thehive_index:/data/thehive_index
+      - cassandra_data:/data/cassandra_db
     networks:
       - security_net
 
+
   cassandra:
-    image: cassandra:4.1
+    image: cassandra:3.11
     container_name: sgd_cassandra
     restart: unless-stopped
     environment:
@@ -324,19 +335,37 @@ services:
       start_period: 180s
 
   cortex:
-    image: thehiveproject/cortex:3.1.7
+    build:
+      context: .
+      dockerfile: cortex/Dockerfile
     container_name: sgd_cortex
     restart: unless-stopped
+    privileged: true
+    user: root
     ports:
       - "9001:9001"
     command:
+      - --no-config-secret
+      - --no-config-es
       - --es-uri
       - http://elasticsearch-cortex:9200
+      - --secret
+      - "changeme_cortex_secret_key_min32chars_ok"
+      - --job-directory
+      - /tmp/cortex-jobs
+      - --analyzer-url
+      - https://download.thehive-project.org/analyzers.json
+      - --responder-url
+      - https://download.thehive-project.org/responders.json
     environment:
-      - JOB_DIRECTORY=/tmp/cortex-jobs
+      - JAVA_OPTS=-Xms256m -Xmx512m
+      - JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
+      - config.file=/etc/cortex/application.conf
     volumes:
       - cortex_data:/data
+      - /tmp/cortex-jobs:/tmp/cortex-jobs
       - /var/run/docker.sock:/var/run/docker.sock
+      - ./cortex/application.conf:/etc/cortex/application.conf
     depends_on:
       elasticsearch-cortex:
         condition: service_healthy

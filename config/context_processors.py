@@ -7,5 +7,6 @@ def external_tools(request):
     return {
         "WAZUH_URL": getattr(settings, "WAZUH_DASHBOARD_URL", "http://localhost:5601"),
         "THEHIVE_URL": getattr(settings, "THEHIVE_EXTERNAL_URL", "http://localhost:9000"),
+        "CORTEX_URL": getattr(settings, "CORTEX_EXTERNAL_URL", "http://localhost:9001"),
     }
 

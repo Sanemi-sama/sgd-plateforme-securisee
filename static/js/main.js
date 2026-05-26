@@ -34,6 +34,8 @@ async function refreshSystemStatus() {
     const data = await resp.json();
 
     const available = !!data.available;
+    const thehiveAvailable = !!data.thehive_available;
+    const cortexAvailable = !!data.cortex_available;
     const critical = Number(data?.summary?.critical ?? 0);
 
     if (dot) {
@@ -44,6 +46,19 @@ async function refreshSystemStatus() {
       label.textContent = available
         ? `Wazuh connecté · Critiques: ${critical}`
         : 'Wazuh indisponible';
+    }
+
+    // Update other tool dots if they exist
+    const thehiveDot = document.getElementById('thehiveStatusDot');
+    if (thehiveDot) {
+      thehiveDot.classList.toggle('online', thehiveAvailable);
+      thehiveDot.classList.toggle('offline', !thehiveAvailable);
+    }
+
+    const cortexDot = document.getElementById('cortexStatusDot');
+    if (cortexDot) {
+      cortexDot.classList.toggle('online', cortexAvailable);
+      cortexDot.classList.toggle('offline', !cortexAvailable);
     }
 
     if (banner && bannerText) {

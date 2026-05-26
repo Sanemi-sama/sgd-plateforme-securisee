@@ -1,0 +1,24 @@
+---
+# This is the internal user database
+_meta:
+  type: "internalusers"
+  config_version: 2
+
+admin:
+  hash: "$2y$12$rzCqruIGCxosAkiyPCL6Z.s8pqvnDyKo.Nb9Q1SHjBeKehG3QxrqC"
+  reserved: true
+  backend_roles:
+  - "admin"
+  description: "Admin user for SGD"
+
+kibanaserver:
+  hash: "$2a$12$4AcgAt3xwOWadA5s5blL6ev39OXDNhmOesEoo33eZtrq2N0YrU3H."
+  reserved: true
+  description: "Demo OpenSearch Dashboards user"
+
+wazuh_wui:
+  hash: "$2y$12$rzCqruIGCxosAkiyPCL6Z.s8pqvnDyKo.Nb9Q1SHjBeKehG3QxrqC"
+  reserved: false
+  backend_roles:
+  - "admin"
+  description: "User for Wazuh WUI"

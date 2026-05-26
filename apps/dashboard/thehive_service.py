@@ -43,6 +43,20 @@ class TheHiveService:
             print(f"[TheHive] GET {endpoint}: {e}")
         return None
 
+    def is_available(self):
+        """Vérifie si le service TheHive répond."""
+        try:
+            # On teste l'API de statut ou simplement la racine
+            resp = requests.get(f"{self.base_url}/index.html", timeout=2)
+            return resp.status_code == 200
+        except Exception:
+            try:
+                # Fallback sur l'API si l'index n'est pas accessible
+                resp = requests.get(f"{self.base_url}/api/v1/user/current", headers=self._headers(), timeout=2)
+                return resp.status_code in (200, 401) # 401 means it's up but key is wrong
+            except Exception:
+                return False
+
     # ══════════════════════════════════════════
     #  CRÉER UNE ALERTE depuis une alerte Wazuh
     # ══════════════════════════════════════════

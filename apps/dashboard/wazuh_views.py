@@ -6,6 +6,7 @@ import json
 
 from .wazuh_service import WazuhService
 from .thehive_service import TheHiveService
+from .cortex_service import CortexService
 from apps.audit.utils import log_action
 from apps.users.views import require_manager
 
@@ -93,8 +94,17 @@ def send_to_thehive(request):
 @login_required
 @require_manager
 def wazuh_status(request):
-    """API JSON — statut Wazuh pour le dashboard graphique."""
+    """API JSON — statut global des outils de sécurité pour le dashboard."""
     wazuh = WazuhService()
+    thehive = TheHiveService()
+    cortex = CortexService()
+
+    data = {
+        'available': False,
+        'thehive_available': thehive.is_available(),
+        'cortex_available': cortex.is_available(),
+    }
+
     if wazuh.is_available():
         # Récupère la liste des agents avec détails
         agents_raw    = wazuh.get_agents()
@@ -108,13 +118,14 @@ def wazuh_status(request):
             }
             for a in agents_raw
         ]
-        return JsonResponse({
+        data.update({
             'available':    True,
             'summary':      wazuh.get_alerts_summary(),
             'agents':       wazuh.get_agents_summary(),
             'agents_list':  agents_list,
         })
-    return JsonResponse({'available': False})
+
+    return JsonResponse(data)
 
 
 @login_required

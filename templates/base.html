@@ -10,7 +10,9 @@
   <link rel="stylesheet" href="/static/css/main.css">
   {% block extra_css %}{% endblock %}
 </head>
-<body>
+<body data-auth="{% if user.is_authenticated %}1{% else %}0{% endif %}" 
+      data-is-manager="{% if user.is_manager %}1{% else %}0{% endif %}"
+      data-wazuh-status-url="{% url 'dashboard:wazuh_status' %}">
 
 {% if user.is_authenticated %}
 <!-- ══ SIDEBAR ══════════════════════════════════════════════ -->
@@ -66,10 +68,17 @@
     <div class="nav-section-label">Outils externes</div>
     <a href="{{ WAZUH_URL }}" target="_blank" class="nav-item external">
       <i class="fas fa-radar"></i><span>Wazuh Dashboard</span>
+      <span class="status-dot offline" id="systemStatusDot" title="Statut Wazuh"></span>
       <i class="fas fa-arrow-up-right-from-square nav-ext-icon"></i>
     </a>
     <a href="{{ THEHIVE_URL }}" target="_blank" class="nav-item external">
       <i class="fas fa-bug-slash"></i><span>TheHive</span>
+      <span class="status-dot offline" id="thehiveStatusDot" title="Statut TheHive"></span>
+      <i class="fas fa-arrow-up-right-from-square nav-ext-icon"></i>
+    </a>
+    <a href="{{ CORTEX_URL }}" target="_blank" class="nav-item external">
+      <i class="fas fa-brain"></i><span>Cortex</span>
+      <span class="status-dot offline" id="cortexStatusDot" title="Statut Cortex"></span>
       <i class="fas fa-arrow-up-right-from-square nav-ext-icon"></i>
     </a>
   </nav>
